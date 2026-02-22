@@ -1,1 +1,5 @@
 output.avi
+assets
+.venv
+data_structure_output.txt
+test.py
