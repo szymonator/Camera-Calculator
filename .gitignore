@@ -3,3 +3,4 @@ assets
 .venv
 data_structure_output.txt
 test.py
+.DS_Store
