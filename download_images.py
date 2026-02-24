@@ -1,3 +1,4 @@
+# File for downloading images for the mediapipe_test example.
 import urllib.request
 
 IMAGE_FILENAMES = ['thumbs_down.jpg', 'victory.jpg', 'thumbs_up.jpg', 'pointing_up.jpg']

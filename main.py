@@ -1,4 +1,4 @@
-import numpy as np
+# The main file for the actual project, containing all relevant code.
 import cv2 as cv
 import mediapipe as mp
 from mediapipe.tasks import python
