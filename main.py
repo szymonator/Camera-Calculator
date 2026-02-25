@@ -18,7 +18,6 @@ HAND_CONNECTIONS = [
 
 COLOUR = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]
 
-#TODO
 def plot_gesture_data(frame):
 
     global gesture_data
