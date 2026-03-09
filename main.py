@@ -18,6 +18,8 @@ HAND_CONNECTIONS = [
 
 COLOUR = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]
 
+PATH = "custom_gesture_recognizer.task"
+
 def plot_gesture_data(frame):
 
     global gesture_data
@@ -79,7 +81,7 @@ out = cv.VideoWriter('output.avi', fourcc, 20, (width, height))
 
 # creating gesturerecogniser object
 # setting options
-base_options = python.BaseOptions(model_asset_path='gesture_recognizer.task')
+base_options = python.BaseOptions(model_asset_path=PATH)
 running_mode = mp.tasks.vision.RunningMode.LIVE_STREAM
 num_hands = 4
 result_callback = my_gesture_callback

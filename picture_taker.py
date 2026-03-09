@@ -6,8 +6,8 @@ cap = cv.VideoCapture(0)
 width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-# folders for the gestures = [single thumb pointing out, thumb & index, thumb & index & middle, thumb & index & middle & ring, all fingers, vertical flat palm but edge is facing us, horizontal flat palm but edge is facing us, diagonal flat palm but edge is facing us]
-path_list = ["point_one/", "point_two/", "point_three/", "point_four/", "open_palm/", "vertical_flat_palm_edge/", "horizontal_flat_palm_edge/", "diagonal_flat_palm_edge/"]
+# folders for the gestures = [none/noise, single thumb pointing out, thumb & index, thumb & index & middle, thumb & index & middle & ring, all fingers, vertical flat palm but edge is facing us, horizontal flat palm but edge is facing us, diagonal flat palm but edge is facing us]
+path_list = ["None/", "point_one/", "point_two/", "point_three/", "point_four/", "open_palm/", "vertical_flat_palm_edge/", "horizontal_flat_palm_edge/", "diagonal_flat_palm_edge/"]
 current_path = 0
 
 image_number = 0
