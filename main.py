@@ -7,6 +7,9 @@ import time
  
 gesture_data = None
 
+NUM_HANDS = 2
+previous_gestures = [[] for _ in range(NUM_HANDS)]
+
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),       # Thumb
     (0, 5), (5, 6), (6, 7), (7, 8),       # Index
@@ -16,9 +19,18 @@ HAND_CONNECTIONS = [
     (0, 17)                               # Palm base
 ]
 
+
+
 COLOUR = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]
 
 PATH = "custom_gesture_recognizer.task"
+
+GESTURE_TYPE = ["None", "point_one", "point_two", "point_three", "point_four", "open_palm", "vertical_flat_palm_edge", "horizontal_flat_palm_edge", "diagonal_flat_palm_edge"]
+
+def drawing_expressions(frame):
+
+    global gesture_data
+    global previous_gestures
 
 def plot_gesture_data(frame):
 
@@ -50,6 +62,10 @@ def plot_gesture_data(frame):
         for point in points_array[hand]:
             cv.circle(frame, (point[0], point[1]), 5, COLOUR[hand], 30)
             cv.circle(frame, (point[0], point[1]), 5, COLOUR[hand-1], 20)
+
+
+    # drawing expressions
+    drawing_expressions(frame)
     
     return frame
     
@@ -58,11 +74,29 @@ def plot_gesture_data(frame):
 def my_gesture_callback(result, output_image, timestamp_ms):
     
     if result.gestures:
+        global previous_gestures
         print("Saw gestures: ", end="")
-        for i in range(len(result.gestures)-1):
-            print(f"{result.gestures[i][0].category_name}, ", end="")
-        print(f"{result.gestures[-1][0].category_name}", end="")
-        print(f" at {timestamp_ms}")
+        for i in range(len(result.gestures)):
+            name = result.gestures[i][0].category_name
+            print(f"{name}  ", end="")
+            # Check if this specific hand's history is populated
+            if previous_gestures[i]: 
+                
+                if name == previous_gestures[i][0]:
+                    # Same gesture: Add the time difference
+                    previous_gestures[i][1] += timestamp_ms - previous_gestures[i][2]
+                    # Update the 'last seen' timestamp so the next frame calculates correctly
+                    previous_gestures[i][2] = timestamp_ms 
+                else:
+                    # Hand is still here, but gesture changed. Overwrite the whole list.
+                    previous_gestures[i] = [name, 0, timestamp_ms]
+                    
+            else:
+                # First time seeing this hand (or hand just returned). Populate the list.
+                previous_gestures[i] = [name, 0, timestamp_ms]
+        for i in range(len(result.gestures), NUM_HANDS):
+            previous_gestures[i] = []
+        print(f"  at {timestamp_ms}")
         
         global gesture_data
         result.timestamp = timestamp_ms
@@ -83,12 +117,11 @@ out = cv.VideoWriter('output.avi', fourcc, 20, (width, height))
 # setting options
 base_options = python.BaseOptions(model_asset_path=PATH)
 running_mode = mp.tasks.vision.RunningMode.LIVE_STREAM
-num_hands = 4
 result_callback = my_gesture_callback
 
 options = vision.GestureRecognizerOptions(  base_options=base_options,
                                             running_mode=running_mode,
-                                            num_hands=num_hands,
+                                            num_hands=NUM_HANDS,
                                             result_callback=result_callback)
 
 recognizer = vision.GestureRecognizer.create_from_options(options)
