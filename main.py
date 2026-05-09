@@ -25,12 +25,90 @@ COLOUR = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]
 
 PATH = "custom_gesture_recognizer.task"
 
-GESTURE_TYPE = ["None", "point_one", "point_two", "point_three", "point_four", "open_palm", "vertical_flat_palm_edge", "horizontal_flat_palm_edge", "diagonal_flat_palm_edge"]
+GESTURE_TYPE = {"point_one":"1", "point_two":"2", "point_three":"3", "point_four":"4", "open_palm":"5", "vertical_flat_palm_edge":"V", "horizontal_flat_palm_edge":"H", "diagonal_flat_palm_edge":"D"}
 
-def drawing_expressions(frame):
+equation = "="
 
-    global gesture_data
+def equation_management():
+
     global previous_gestures
+    global equation
+
+    operators = ['+', '-', '/', '*', '=']
+
+
+    # assuming NUM_HANDS remains as 2
+    if (not previous_gestures[1]) and previous_gestures[0]: # if there is only 1 hand
+        name = previous_gestures[0][0]
+        if (previous_gestures[0][1] > 2000) and (name in GESTURE_TYPE):
+            try:
+                # if gesture is number
+                number = int(GESTURE_TYPE[name])
+                if equation[-1] in operators:
+                    equation += str(number)
+                    print()
+                    print()
+                    print(f"Added {number}")
+                    print()
+                    print()
+            except ValueError:
+                if (equation[-1] not in operators):
+                    if GESTURE_TYPE[name] == "H":
+                        equation += '-'
+                        print()
+                        print()
+                        print("Added -")
+                        print()
+                        print()
+                    elif GESTURE_TYPE[name] == "D":
+                        equation += '/'
+                        print()
+                        print()
+                        print("Added /")
+                        print()
+                        print()
+    elif previous_gestures[1] and previous_gestures[0]: # both hands
+        name1 = previous_gestures[0][0]
+        name2 = previous_gestures[1][0]
+        if (name1 in GESTURE_TYPE) and (name2 in GESTURE_TYPE) and (previous_gestures[0][1] > 2000) and (previous_gestures[1][1] > 2000):
+            try:
+                # if gestures are numbers
+                number1 = int(GESTURE_TYPE[name1])
+                number2 = int(GESTURE_TYPE[name2])
+                if equation[-1] in operators:
+                    equation += str(number1 + number2)
+                    print()
+                    print()
+                    print(f"Added {number1+number2}")
+                    print()
+                    print()
+            except ValueError:
+                if (equation[-1] not in operators):
+                    if GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "H":
+                        equation += "="
+                        print()
+                        print()
+                        print("Added =")
+                        print()
+                        print()
+                        # logic for computation
+                    elif GESTURE_TYPE[name1] == "D" and GESTURE_TYPE[name2] == "D":
+                        equation += '*'
+                        print()
+                        print()
+                        print("Added *")
+                        print()
+                        print()
+                    elif (GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "V") or (GESTURE_TYPE[name1] == "V" and GESTURE_TYPE[name2] == "H"):
+                        equation += '+'
+                        print()
+                        print()
+                        print("Added +")
+                        print()
+                        print()
+
+                
+
 
 def plot_gesture_data(frame):
 
@@ -62,10 +140,6 @@ def plot_gesture_data(frame):
         for point in points_array[hand]:
             cv.circle(frame, (point[0], point[1]), 5, COLOUR[hand], 30)
             cv.circle(frame, (point[0], point[1]), 5, COLOUR[hand-1], 20)
-
-
-    # drawing expressions
-    drawing_expressions(frame)
     
     return frame
     
@@ -143,12 +217,14 @@ while cap.isOpened():
     recognizer.recognize_async(mp_image, timestamp_ms)
 
     frame = plot_gesture_data(frame)
+    equation_management()
  
     # write the frame
     out.write(frame)
     cv.imshow('Gesture Recogniser', frame)
 
     if cv.waitKey(1) == ord('q'):
+        print(equation)
         break
  
 # Release everything if job is finished
