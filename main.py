@@ -125,12 +125,14 @@ def equation_management():
                 number = int(GESTURE_TYPE[name])
                 if equation[-1] in OPERATORS:
                     equation += str(number)
+                    previous_gestures[0][1] = 0
             except ValueError:
                 if (equation[-1] not in OPERATORS):
                     if GESTURE_TYPE[name] == "H":
                         equation += '-'
                     elif GESTURE_TYPE[name] == "D":
                         equation += '/'
+                    previous_gestures[0][1] = 0
     elif previous_gestures[1] and previous_gestures[0]: # both hands
         name1 = previous_gestures[0][0]
         name2 = previous_gestures[1][0]
@@ -141,6 +143,8 @@ def equation_management():
                 number2 = int(GESTURE_TYPE[name2])
                 if equation[-1] in OPERATORS:
                     equation += str(number1 + number2)
+                    previous_gestures[0][1] = 0
+                    previous_gestures[1][1] = 0
             except ValueError:
                 if (equation[-1] not in OPERATORS):
                     if GESTURE_TYPE[name1] == "D" and GESTURE_TYPE[name2] == "D":
@@ -148,8 +152,10 @@ def equation_management():
                     elif (GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "V") or (GESTURE_TYPE[name1] == "V" and GESTURE_TYPE[name2] == "H"):
                         equation += '+'
                     elif GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "H":
-                        # logic for computation
-                        solve()
+                        equation += '='
+                    
+                    previous_gestures[0][1] = 0
+                    previous_gestures[1][1] = 0
 
                 
 
@@ -246,6 +252,8 @@ recognizer = vision.GestureRecognizer.create_from_options(options)
 
 start_time = int(time.time()*1000)
 
+results = []
+
 while cap.isOpened():
 
     ret, frame = cap.read()
@@ -263,6 +271,9 @@ while cap.isOpened():
     frame = plot_gesture_data(frame)
     equation_management()
 
+    if equation[-1] == '=' and len(equation) > 1:
+        results.append(solve())
+        equation = '='
  
     # write the frame
     out.write(frame)
@@ -270,6 +281,7 @@ while cap.isOpened():
 
     if cv.waitKey(1) == ord('q'):
         print(equation)
+        print(results)
         break
  
 # Release everything if job is finished
