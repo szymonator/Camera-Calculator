@@ -4,10 +4,13 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import time
+import re
+import math
  
 gesture_data = None
 
 NUM_HANDS = 2
+OPERATORS = ['+', '-', '/', '*', '=']
 previous_gestures = [[] for _ in range(NUM_HANDS)]
 
 HAND_CONNECTIONS = [
@@ -29,13 +32,89 @@ GESTURE_TYPE = {"point_one":"1", "point_two":"2", "point_three":"3", "point_four
 
 equation = "="
 
+def get_operand(equation, pos):
+    num = ""
+    more_digits = True
+    while more_digits:
+        if not(re.search("[0-9]", str(equation[pos])) is None):
+            num += equation[pos]
+
+        else:
+            more_digits = False
+        pos += 1
+        if pos == len(equation) :
+            more_digits = False
+    if num == "":
+        return -1, pos
+    else:
+        return int(num), pos
+
+def rpn_converter(equation) :
+    pos = 0
+    precedence = {"+": 2, "-": 2, "*": 4,"/": 4}
+    operators = []
+    operand, pos = get_operand(equation, pos)
+    rpn = []
+    rpn.append(str(operand))
+    operators.append(equation[pos-1])
+    while pos < len(equation):
+        operand, pos = get_operand(equation, pos)
+        rpn.append(str(operand))
+        if pos < len(equation):
+            CurrentOperator = equation[pos-1]
+            while len(operators) > 0 and precedence[operators[-1]] > precedence[CurrentOperator]:
+                rpn.append(operators [-1])
+                operators.pop()
+            if len(operators) > 0 and precedence[operators [-1]] == precedence[CurrentOperator]:
+                rpn.append(operators[-1])
+                operators.pop()
+            operators.append(CurrentOperator)
+        else:
+            while len(operators) > 0:
+                rpn.append(operators[-1])
+                operators.pop()
+    return rpn
+
+def evaluate_rpn(rpn):
+    stack = []
+    while len(rpn) > 0:
+        while rpn[0] not in ["+", "-", "*", "/"]:
+            stack.append(rpn[0])
+            rpn.pop(0)
+        num2 = float(stack[-1])
+        stack.pop()
+        num1 = float(stack[-1])
+        stack.pop()
+        Result = 0.0
+        if rpn[0] == "+":
+            Result = num1 + num2
+        elif rpn[0] == "_":
+            Result = num1 - num2
+        elif rpn[0] == "*":
+            Result = num1 * num2
+        elif rpn[0] == "/" and num2 != 0:
+            Result = num1 / num2
+        rpn.pop(0)
+        stack.append(str(Result))
+    if float(stack[0]) - math.floor (float(stack[0])) == 0.0:
+        return math.floor(float (stack[0]))
+
+def solve():
+    global equation
+
+    rpn = rpn_converter(equation[1:])
+    result = evaluate_rpn(rpn)
+
+    if result != None:
+        return result
+
+
+
+
 def equation_management():
 
     global previous_gestures
     global equation
-
-    operators = ['+', '-', '/', '*', '=']
-
 
     # assuming NUM_HANDS remains as 2
     if (not previous_gestures[1]) and previous_gestures[0]: # if there is only 1 hand
@@ -44,29 +123,14 @@ def equation_management():
             try:
                 # if gesture is number
                 number = int(GESTURE_TYPE[name])
-                if equation[-1] in operators:
+                if equation[-1] in OPERATORS:
                     equation += str(number)
-                    print()
-                    print()
-                    print(f"Added {number}")
-                    print()
-                    print()
             except ValueError:
-                if (equation[-1] not in operators):
+                if (equation[-1] not in OPERATORS):
                     if GESTURE_TYPE[name] == "H":
                         equation += '-'
-                        print()
-                        print()
-                        print("Added -")
-                        print()
-                        print()
                     elif GESTURE_TYPE[name] == "D":
                         equation += '/'
-                        print()
-                        print()
-                        print("Added /")
-                        print()
-                        print()
     elif previous_gestures[1] and previous_gestures[0]: # both hands
         name1 = previous_gestures[0][0]
         name2 = previous_gestures[1][0]
@@ -75,37 +139,17 @@ def equation_management():
                 # if gestures are numbers
                 number1 = int(GESTURE_TYPE[name1])
                 number2 = int(GESTURE_TYPE[name2])
-                if equation[-1] in operators:
+                if equation[-1] in OPERATORS:
                     equation += str(number1 + number2)
-                    print()
-                    print()
-                    print(f"Added {number1+number2}")
-                    print()
-                    print()
             except ValueError:
-                if (equation[-1] not in operators):
-                    if GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "H":
-                        equation += "="
-                        print()
-                        print()
-                        print("Added =")
-                        print()
-                        print()
-                        # logic for computation
-                    elif GESTURE_TYPE[name1] == "D" and GESTURE_TYPE[name2] == "D":
+                if (equation[-1] not in OPERATORS):
+                    if GESTURE_TYPE[name1] == "D" and GESTURE_TYPE[name2] == "D":
                         equation += '*'
-                        print()
-                        print()
-                        print("Added *")
-                        print()
-                        print()
                     elif (GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "V") or (GESTURE_TYPE[name1] == "V" and GESTURE_TYPE[name2] == "H"):
                         equation += '+'
-                        print()
-                        print()
-                        print("Added +")
-                        print()
-                        print()
+                    elif GESTURE_TYPE[name1] == "H" and GESTURE_TYPE[name2] == "H":
+                        # logic for computation
+                        solve()
 
                 
 
@@ -218,6 +262,7 @@ while cap.isOpened():
 
     frame = plot_gesture_data(frame)
     equation_management()
+
  
     # write the frame
     out.write(frame)
