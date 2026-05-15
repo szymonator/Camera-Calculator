@@ -88,7 +88,7 @@ def evaluate_rpn(rpn):
         Result = 0.0
         if rpn[0] == "+":
             Result = num1 + num2
-        elif rpn[0] == "_":
+        elif rpn[0] == "-":
             Result = num1 - num2
         elif rpn[0] == "*":
             Result = num1 * num2
@@ -104,11 +104,8 @@ def solve():
 
     rpn = rpn_converter(equation[1:])
     result = evaluate_rpn(rpn)
-
     if result != None:
         return result
-
-
 
 
 def equation_management():
