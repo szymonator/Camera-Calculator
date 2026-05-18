@@ -1,7 +1,9 @@
 import { GestureRecognizer, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs";
+import { rpnConverter, evaluateRpn } from "./calculator.js"
 
 let recognizer;
 let runningMode = "VIDEO";
+let justSolved = true;
 
 const HAND_CONNECTIONS = [
     [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
@@ -11,6 +13,9 @@ const HAND_CONNECTIONS = [
     [13, 17], [17, 18], [18, 19], [19, 20],// Pinky
     [0, 17]                               // Palm base
 ];
+
+const GESTURE_TYPE = { "point_one":"1", "point_two":"2", "point_three":"3", "point_four":"4", "open_palm":"5", "vertical_flat_palm_edge":"V", "horizontal_flat_palm_edge":"H", "diagonal_flat_palm_edge":"D" };
+const OPERATORS = ['+', '-', '/', '*', '='];
 
 // downloading WASM takes time so it's async
 async function initializeMediaPipe() {
@@ -123,7 +128,89 @@ if (hasGetUserMedia()) {
     alert("Your browser does not support webcam access.");
 }
 
+// array to hold state objects: { name: "open_palm", duration: 0, lastSeen: timestamp }
+let previousGestures = [null, null]; 
+let equation = "";
 
+
+function updateGestureTimers(results, currentTimeMs) {
+    for (let i = 0; i < 2; i++) {
+        // check if hand i exists
+        if (results.gestures && results.gestures[i] && results.gestures[i].length > 0) {
+            let name = results.gestures[i][0].categoryName;
+            
+            if (previousGestures[i] && previousGestures[i].name === name) {
+                // same gesture
+                previousGestures[i].duration += (currentTimeMs - previousGestures[i].lastSeen);
+                previousGestures[i].lastSeen = currentTimeMs;
+            } else {
+                // new or changed gesture
+                previousGestures[i] = { name: name, duration: 0, lastSeen: currentTimeMs };
+            }
+        } else {
+            // hand is off-screen
+            previousGestures[i] = null;
+        }
+    }
+}
+
+function equationManagement() {
+    if (previousGestures[0] && !previousGestures[1]) { // if there is only one hand
+        const name = previousGestures[0].name
+        if ((previousGestures[0].duration > 2000) && (name in GESTURE_TYPE)) {
+            const number = parseInt(GESTURE_TYPE[name]);
+            if (!isNaN(number) && (OPERATORS.includes(equation.slice(-1)) || justSolved)) {
+                // is a valid number and last element is an operator or equation is empty
+                if (justSolved) {
+                    justSolved = false
+                    equation = ""
+                }
+                equation += number.toString()
+                previousGestures[0].duration = 0
+            } else if (!OPERATORS.includes(equation.slice(-1)) && !justSolved) {
+                // is an operator and last element is an operand 
+                if (GESTURE_TYPE[name] === "H") {
+                    equation += '-'
+                } else if (GESTURE_TYPE[name] === "D") {
+                    equation += '/'
+                }
+                previousGestures[0].duration = 0
+            }
+        }
+    } else if (previousGestures[0] && previousGestures[1]) {// both hands
+        const name1 = previousGestures[0].name
+        const name2 = previousGestures[1].name
+        if ((name1 in GESTURE_TYPE) && (name2 in GESTURE_TYPE) && (previousGestures[0].duration > 2000) && (previousGestures[1].duration > 2000)) {
+            const number1 = parseInt(GESTURE_TYPE[name1])
+            const number2 = parseInt(GESTURE_TYPE[name2])
+            if (!isNaN(number1) && !isNaN(number2) && (OPERATORS.includes(equation.slice(-1)) || justSolved)) {
+                // is a valid number and last element is an operator or equation is empty
+                if (justSolved) {
+                    justSolved = false
+                    equation = ""
+                }
+                equation += (number1+number2).toString()
+                previousGestures[0].duration = 0
+                previousGestures[1].duration = 0
+            } else if (!OPERATORS.includes(equation.slice(-1)) && !justSolved) {
+                // is an operator and last element is an operand 
+                if ((GESTURE_TYPE[name1] === "D") && (GESTURE_TYPE[name2] === "D")) {
+                    equation += '*'
+                } else if (((GESTURE_TYPE[name1] === "H") && (GESTURE_TYPE[name2] === "V")) || ((GESTURE_TYPE[name1] === "V") && (GESTURE_TYPE[name2] === "H"))) {
+                    equation += '+'
+                } else if ((GESTURE_TYPE[name1] === "H") && (GESTURE_TYPE[name2] === "H") || !justSolved) {
+                    let rpn = rpnConverter(equation);
+                    let finalAnswer = evaluateRpn(rpn);
+                    equation += '=' + finalAnswer;
+                    justSolved = true;
+                }
+                previousGestures[0].duration = 0
+                previousGestures[1].duration = 0
+            }
+        }
+
+    }
+}
 
 let lastVideoTime = -1;
 
@@ -147,6 +234,13 @@ async function predictWebcam() {
     if (results) {
         drawLandmarks(results, ctx, canvas.width, canvas.height);
     }
+
+    // manage Logic and ui
+    updateGestureTimers(results, startTimeMs);
+    equationManagement(); 
+    
+    // update equation display
+    document.getElementById('equation-display').innerText = equation;
 
     // recursive loop, synced to refresh rate of monitor
     window.requestAnimationFrame(predictWebcam);

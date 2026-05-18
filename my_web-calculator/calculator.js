@@ -16,48 +16,56 @@ function getOperand(equation, pos) {
     }
     
     if (num === "") {
-        return { num: None, pos: pos };
+        return { num: null, pos: pos };
     } else {
         return { num: parseInt(num), pos: pos };
     }
 }
 
-function rpnConverter(equationString) {
+export function rpnConverter(equationString) {
     let pos = 0;
     let operators = [];
     let rpn = [];
     
+    // first operand
     let result = getOperand(equationString, pos);
-    rpn.push(result.num.toString());
-    pos = result.pos;
     
-    // Safety check to ensure we don't go out of bounds
-    if (pos > 0) {
-        operators.push(equationString[pos - 1]);
-    }
-
+    // ensure string not empty (impossible but still good practice)
+    if (result.num === null) return rpn; 
+    
+    rpn.push(result.num.toString());
+    pos = result.pos; // 'pos' now points to first operator
+    
+    // loop through the rest of the equation
     while (pos < equationString.length) {
-        result = getOperand(equationString, pos);
-        rpn.push(result.num.toString());
-        pos = result.pos;
-
+        
+        let currentOperator = equationString[pos];
+        // handle operator precedence (shunting yard logic)
+        while (operators.length > 0 && PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[currentOperator]) {
+            rpn.push(operators.pop());
+        }
+        operators.push(currentOperator);
+        
+        // step over to next operand
+        pos++;
         if (pos < equationString.length) {
-            let currentOperator = equationString[pos - 1];
-            
-            while (operators.length > 0 && PRECEDENCE[operators[operators.length - 1]] >= PRECEDENCE[currentOperator]) {
-                rpn.push(operators.pop());
+            result = getOperand(equationString, pos);
+            if (result.num !== null) {
+                rpn.push(result.num.toString());
             }
-            operators.push(currentOperator);
-        } else {
-            while (operators.length > 0) {
-                rpn.push(operators.pop());
-            }
+            pos = result.pos; // pos points to the next operator
         }
     }
+    
+    // end of string, get remaining operators from  stack
+    while (operators.length > 0) {
+        rpn.push(operators.pop());
+    }
+    
     return rpn;
 }
 
-function evaluateRpn(rpn) {
+export function evaluateRpn(rpn) {
     let stack = [];
     
     while (rpn.length > 0) {
