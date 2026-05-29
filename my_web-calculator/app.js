@@ -4,6 +4,9 @@ import { rpnConverter, evaluateRpn } from "./calculator.js"
 let recognizer;
 let runningMode = "VIDEO";
 let justSolved = true;
+let lastRenderedEquation = null;
+const equationDisplay = document.getElementById('equation-display');
+
 
 const HAND_CONNECTIONS = [
     [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
@@ -34,7 +37,7 @@ async function initializeMediaPipe() {
         runningMode: runningMode
     });
 
-    console.log("MediaPipe is ready!");
+    console.log("MediaPipe is ready!");;
 
 }
 
@@ -90,7 +93,6 @@ function drawLandmarks(results, ctx, canvasWidth, canvasHeight) {
 
 const video = document.getElementById('webcam');
 const canvas = document.getElementById('output_canvas');
-const equationDisplay = document.getElementById('equation-display');
 
 // Check if the browser supports webcam access
 const hasGetUserMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -198,7 +200,7 @@ function equationManagement() {
                     equation += '*'
                 } else if (((GESTURE_TYPE[name1] === "H") && (GESTURE_TYPE[name2] === "V")) || ((GESTURE_TYPE[name1] === "V") && (GESTURE_TYPE[name2] === "H"))) {
                     equation += '+'
-                } else if ((GESTURE_TYPE[name1] === "H") && (GESTURE_TYPE[name2] === "H") || !justSolved) {
+                } else if ((GESTURE_TYPE[name1] === "H") && (GESTURE_TYPE[name2] === "H")) {
                     let rpn = rpnConverter(equation);
                     let finalAnswer = evaluateRpn(rpn);
                     equation += '=' + finalAnswer;
@@ -213,6 +215,7 @@ function equationManagement() {
 }
 
 let lastVideoTime = -1;
+const ctx = canvas.getContext('2d');
 
 async function predictWebcam() {
     // skip processing if video frame not updated yet
@@ -226,8 +229,7 @@ async function predictWebcam() {
     let startTimeMs = performance.now();
     const results = recognizer.recognizeForVideo(video, startTimeMs);
 
-    // setup canvas content, wipe prev frame
-    const ctx = canvas.getContext('2d');
+    // wipe prev frame
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // draw landmarks
@@ -238,9 +240,11 @@ async function predictWebcam() {
     // manage Logic and ui
     updateGestureTimers(results, startTimeMs);
     equationManagement(); 
-    
-    // update equation display
-    document.getElementById('equation-display').innerText = equation;
+
+    if (equation !== lastRenderedEquation) {
+        equationDisplay.innerText = equation === "" ? "Click ? for help!" : equation;
+        lastRenderedEquation = equation;
+    }
 
     // recursive loop, synced to refresh rate of monitor
     window.requestAnimationFrame(predictWebcam);
