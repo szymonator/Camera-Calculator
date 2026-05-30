@@ -30,7 +30,7 @@ async function initializeMediaPipe() {
     // building custom recogniser
     recognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions: {
-            modelAssetPath: "custom_gesture_recognizer.task", 
+            modelAssetPath: "./custom_gesture_recognizer.task", 
             delegate: "GPU" // gpu time for faster processing 
         },
         numHands: 2,

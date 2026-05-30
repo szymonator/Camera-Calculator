@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Calculator</title>
+
+    <!-- fun pixel font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single:wght@100..900&family=Jersey+20&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+    <!-- cursor animation yay -->
+    <canvas id="cursor-fx" popover="manual"></canvas>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <button popovertarget="help-window" class="button_style" style="position: fixed; top: 20px; left: 20px;">?</button>
+
+    <div id="help-window" popover>
+        <div class="organiser">
+            <img id="gesture" src="">
+            <p id="caption" class="pop_text"></p>
+            <div class="button_container">
+                <button class="button_style" onclick="previous()" onmo> &lt;-</button>
+                <div class="counter_div">
+                    <h1 id="slide" class="pop_text">0</h1>
+                </div>
+                <button class="button_style" onclick="next()">-&gt;</button>
+            </div>
+        </div>
+    </div>
+
+<h1 class="text">Gesture Calculator</h1>
+    
+    <div id="lcd-container">
+        <h1 id="equation-display" class="text">Click ? for help!</h1>
+    </div>
+    
+
+    <div class="video-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="output_canvas"></canvas>
+        <div id="crt-overlay"></div>
+    </div>
+
+    <script src="help.js"></script>
+    <script type="module" src="calculator.js"></script>
+    <script type="module" src="app.js"></script>
+    <script type="module" src="cursor.js"></script>
+
+</body>
+</html>
